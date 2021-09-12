@@ -1,0 +1,9 @@
+name = "ARHMM"
+uuid = "5207dcc4-3e03-4d0a-afe4-f6100e33d9f0"
+authors = ["HiroIshida <spitfire.docomo@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
