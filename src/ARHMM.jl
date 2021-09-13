@@ -4,7 +4,7 @@ using LinearAlgebra
 using StaticArrays
 using Distributions
 
-export HiddenStates, ModelParameters
+export HiddenStates, ModelParameters, update!
 
 const Sequence{N} = Vector{SVector{N, Float64}}
 
@@ -40,6 +40,11 @@ function prob_propagation(hs::HiddenStates{N, M}, params::ModelParameters{N, M},
     SVector{M, Float64}(gen)
 end
 
+function update!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
+    alpha_forward!(hs, params, seq)
+    beta_backward!(hs, params, seq)
+end
+
 function alpha_forward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
     n_seq = length(seq)
     x1, x2 = seq[1:2]
@@ -55,18 +60,20 @@ function alpha_forward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, s
     end
 end
 
-function beta_backward(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
+function beta_backward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
     beta = MVector{M, Float64}([1.0 for _ in 1:M]) # β(n_seq-1)
     hs.beta_cache_vec[end] = beta
     for t in hs.n_seq-2:-1:1
         xtt, xttt = seq[t+1:t+2]
-        beta_new = MVector{M, Float64}(undef)
+        beta_new = MVector{M, Float64}([1.0 for _ in 1:M])
         for i in 1:M
+            # TODO logic is bit dirty
             prob_prop = prob_propagation(hs, params, xtt, xttt)
             for j in 1:M
                 beta_new[i] += params.A[j, i] * prob_prop[j] * beta[j]
             end
         end
+        hs.beta_cache_vec[t] = beta_new
         beta = beta_new
     end
 end
