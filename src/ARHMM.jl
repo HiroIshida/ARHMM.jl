@@ -55,4 +55,20 @@ function alpha_forward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, s
     end
 end
 
+function beta_backward(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
+    beta = MVector{M, Float64}([1.0 for _ in 1:M]) # β(n_seq-1)
+    hs.beta_cache_vec[end] = beta
+    for t in hs.n_seq-2:-1:1
+        xtt, xttt = seq[t+1:t+2]
+        beta_new = MVector{M, Float64}(undef)
+        for i in 1:M
+            prob_prop = prob_propagation(hs, params, xtt, xttt)
+            for j in 1:M
+                beta_new[i] += params.A[j, i] * prob_prop[j] * beta[j]
+            end
+        end
+        beta = beta_new
+    end
+end
+
 end # module
