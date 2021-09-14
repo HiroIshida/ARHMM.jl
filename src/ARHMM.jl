@@ -33,7 +33,7 @@ function HiddenStates(sequence::Sequence{N}, n_phase) where N
     n_seq = length(sequence)
     alphas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
     betas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
-    scales = zeros(n_seq - 1)
+    scales = zeros(n_seq)
     HiddenStates{N, n_phase}(n_seq, alphas, betas, scales)
 end
 
@@ -84,20 +84,26 @@ end
 function alpha_forward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
     n_seq = length(seq)
     x1, x2 = seq[1:2]
-    alpha = params.pmf_z1 .* probs_linear_prop(params, x1, x2)
-    c = 1.0
-    alpha_hat = alpha/c
-    hs.alpha_cache_vec[1] = alpha_hat
-    hs.scaling_cache_vec[1] = c
+    px1 = 1.0 # TODO this is a special case when observation of x has no uncertainty
+    alpha1 = probs_linear_prop(params, x1, x2) .* params.pmf_z1 * px1
+    c1 = 1.0
+    c2 = sum(probs_linear_prop(params, x1, x2) .* params.pmf_z1)
+
+    alpha_hat_1 = alpha1/c2
+    hs.alpha_cache_vec[1] = alpha_hat_1
+    hs.scaling_cache_vec[1] = c1
+    hs.scaling_cache_vec[2] = c2
+
+    alpha_hat_tm1 = alpha_hat_1
 
     for t in 2:n_seq-1
-        integral_term = (dot(params.A[i, :], alpha_hat) for i in 1:M)
+        integral_term = (dot(params.A[i, :], alpha_hat_tm1) for i in 1:M)
         xt, xtt = seq[t:t+1]
-        tmp = probs_linear_prop(params, xt, xtt) .* integral_term
-        c = sum(tmp)
-        alpha_hat = tmp/c
+        qt = probs_linear_prop(params, xt, xtt) .* integral_term
+        c_tt = sum(qt)
+        alpha_hat = qt/c_tt
         hs.alpha_cache_vec[t] = alpha_hat
-        hs.scaling_cache_vec[t] = c
+        hs.scaling_cache_vec[t+1] = c_tt
     end
 end
 
