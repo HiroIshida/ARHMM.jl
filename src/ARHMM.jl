@@ -26,13 +26,15 @@ mutable struct HiddenStates{N, M}
     n_seq::Int
     alpha_cache_vec::Vector{MVector{M, Float64}}
     beta_cache_vec::Vector{MVector{M, Float64}}
+    scaling_cache_vec::Vector{Float64}
 end
 
 function HiddenStates(sequence::Sequence{N}, n_phase) where N
     n_seq = length(sequence)
-    alphas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq]
-    betas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq]
-    HiddenStates{N, n_phase}(n_seq, alphas, betas)
+    alphas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
+    betas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
+    scales = zeros(n_seq - 1)
+    HiddenStates{N, n_phase}(n_seq, alphas, betas, scales)
 end
 
 function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}) where {N, M}
@@ -83,12 +85,19 @@ function alpha_forward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, s
     n_seq = length(seq)
     x1, x2 = seq[1:2]
     alpha = params.pmf_z1 .* probs_linear_prop(params, x1, x2)
-    hs.alpha_cache_vec[1] = alpha
+    c = 1.0
+    alpha_hat = alpha/c
+    hs.alpha_cache_vec[1] = alpha_hat
+    hs.scaling_cache_vec[1] = c
+
     for t in 2:n_seq-1
-        integral_term = (dot(params.A[i, :], alpha) for i in 1:M)
+        integral_term = (dot(params.A[i, :], alpha_hat) for i in 1:M)
         xt, xtt = seq[t:t+1]
-        alpha = probs_linear_prop(params, xt, xtt) .* integral_term
-        hs.alpha_cache_vec[t] = alpha
+        tmp = probs_linear_prop(params, xt, xtt) .* integral_term
+        c = sum(tmp)
+        alpha_hat = tmp/c
+        hs.alpha_cache_vec[t] = alpha_hat
+        hs.scaling_cache_vec[t] = c
     end
 end
 
