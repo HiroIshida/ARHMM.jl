@@ -113,7 +113,7 @@ function beta_backward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, s
     hs.beta_cache_vec[end] = beta
     for t in hs.n_seq-2:-1:1
         xtt, xttt = seq[t+1:t+2]
-        beta_hat_new = MVector{M, Float64}([1.0 for _ in 1:M])
+        beta_hat_new = MVector{M, Float64}([0.0 for _ in 1:M])
         for i in 1:M
             # TODO logic is bit dirty
             for j in 1:M
