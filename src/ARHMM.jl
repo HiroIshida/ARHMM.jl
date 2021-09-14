@@ -37,37 +37,42 @@ function HiddenStates(sequence::Sequence{N}, n_phase) where N
     HiddenStates{N, n_phase}(n_seq, alphas, betas, scales)
 end
 
-function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}) where {N, M}
+function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
     function gamma(t)
         alpha = hs.alpha_cache_vec[t]
         beta = hs.beta_cache_vec[t]
-        (alpha .* beta)/dot(alpha, beta)
+        alpha .* beta
     end
 
     function xi(t, i, j)
         alpha = hs.alpha_cache_vec[t]
         beta = hs.beta_cache_vec[t + 1]
-        tmp = prob_linear_prop(params.A_list[j]*x_pre, params.Sigma_list[j], x_pre, x)
-        alpha[i] * params.A[j, i] * tmp * beta[j]
+        x_pre, x = seq[t:t+1]
+        tmp = prob_linear_prop(params.A_list[j], params.Sigma_list[j], x_pre, x)
+        alpha[i] * params.A[j, i] * tmp * beta[j] / hs.scaling_cache_vec[t+2]
     end
     
-    # update pmf_z1
+    # compute new pmf_z1
     alpha1, beta1 = hs.alpha_cache_vec[1], hs.beta_cache_vec[1]
     gamma1 = (alpha1 .* beta1)/dot(alpha1, beta1)
     pmf_z1_new = gamma1 / sum(gamma1)
 
-    # update A
-    mat = MMatrix{M, M, Float64}(undef)
+    # compute new A
+    A_new = MMatrix{M, M, Float64}(undef)
     for t in 1:hs.n_seq - 2
         for i in 1:M
             for j in 1:M
-                mat[i, j] += xi(t, i, j)
+                A_new[i, j] += xi(t, i, j)
             end
         end
     end
     for j in 1:M # normalize
-        mat[:, j] /= sum(mat[:, j])
+        A_new[:, j] /= sum(A_new[:, j])
     end
+
+    # update
+    params.pmf_z1 = pmf_z1_new
+    params.A = A_new
 
 end
 
