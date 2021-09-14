@@ -48,22 +48,14 @@ function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameter
         tmp = prob_linear_prop(params.A_list[j]*x_pre, params.Sigma_list[j], x_pre, x)
         alpha[i] * params.A[j, i] * tmp * beta[j]
     end
-    mat = MMatrix{M, M, Float64}(undef)
-
-    for t in 1:hs.n_seq - 2
-        for i in 1:M
-            for j in 1:M
-                mat[i, j] += xi(t, i, j)
-            end
-        end
-    end
-
+    
     # update pmf_z1
     alpha1, beta1 = hs.alpha_cache_vec[1], hs.beta_cache_vec[1]
     gamma1 = (alpha1 .* beta1)/dot(alpha1, beta1)
     pmf_z1_new = gamma1 / sum(gamma1)
 
     # update A
+    mat = MMatrix{M, M, Float64}(undef)
     for t in 1:hs.n_seq - 2
         for i in 1:M
             for j in 1:M
