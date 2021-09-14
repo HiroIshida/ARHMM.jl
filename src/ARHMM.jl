@@ -109,19 +109,21 @@ end
 
 function beta_backward!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}
     beta = MVector{M, Float64}([1.0 for _ in 1:M]) # β(n_seq-1)
+    beta_hat = beta # c=1.0
     hs.beta_cache_vec[end] = beta
     for t in hs.n_seq-2:-1:1
         xtt, xttt = seq[t+1:t+2]
-        beta_new = MVector{M, Float64}([1.0 for _ in 1:M])
+        beta_hat_new = MVector{M, Float64}([1.0 for _ in 1:M])
         for i in 1:M
             # TODO logic is bit dirty
             for j in 1:M
                 prob_prob = prob_linear_prop(params.A_list[j], params.Sigma_list[j], xtt, xttt)
-                beta_new[i] += params.A[j, i] * prob_prob * beta[j]
+                beta_hat_new[i] += params.A[j, i] * prob_prob * beta_hat[j]
             end
         end
-        hs.beta_cache_vec[t] = beta_new
-        beta = beta_new
+        beta_hat_new /= hs.scaling_cache_vec[t+2]
+        hs.beta_cache_vec[t] = beta_hat_new
+        beta_hat = beta_hat_new
     end
 end
 
