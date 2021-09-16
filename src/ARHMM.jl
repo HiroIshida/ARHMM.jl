@@ -4,6 +4,9 @@ using LinearAlgebra
 using StaticArrays
 using Distributions
 
+export LinearPropagator, FixedPropagator, transition_prob, propagate
+include("propagator.jl")
+
 export HiddenStates, ModelParameters, update_hidden_states!
 
 const Sequence{N} = Vector{SVector{N, Float64}}
