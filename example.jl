@@ -14,7 +14,7 @@ function data_generation(n, A, prop_list)
     for i in 1:n
         cat = Categorical(A[:, z])
         z_next = rand(cat)
-        x_next = prop_list[z_next](x)
+        x_next = prop_list[z](x)
         x, z = x_next, z_next
         push!(xs, SVector{1, Float64}(x))
         push!(zs, z)
@@ -22,20 +22,19 @@ function data_generation(n, A, prop_list)
     return xs, zs
 end
 
-#Random.seed!(2)
-prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.01]), [0.1])
-prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.01]), [-0.1])
+Random.seed!(2)
+prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [0.1])
+prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [-0.1])
 prop_list = [prop1, prop2]
 A = [0.95 0.05;
      0.05 0.95]
 
-xs, zs = data_generation(30, A, prop_list)
-hs = HiddenStates(xs, 2)
+xs, zs = data_generation(50, A, prop_list)
 mp = ModelParameters(1, A, prop_list)
-ARHMM.alpha_forward!(hs, mp, xs)
-ARHMM.beta_backward!(hs, mp, xs)
+alpha_seq = ARHMM.alpha_forward(mp, xs)
+beta_seq = ARHMM.beta_backward(mp, xs)
 
-cat_pred = [(a .* b)/sum(a .* b) for (a, b) in zip(hs.beta_seq, hs.alpha_seq )]
+cat_pred = [(a .* b)/sum(a .* b) for (a, b) in zip(alpha_seq, beta_seq)]
 zs_pred = [argmax(z) for z in cat_pred]
 
 using Plots
