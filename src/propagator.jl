@@ -23,8 +23,8 @@ function transition_prob(prop::LinearPropagator, x_before, x_after)
     pdf(dist, x_after)
 end
 
-function propagate(prop::LinearPropagator, x)
-    mean = prop.phi * x + drift
+function (prop::LinearPropagator)(x)
+    mean = prop.phi * x + prop.drift
     dist = MvNormal(mean, Matrix(prop.cov))
     rand(dist)
 end
@@ -34,4 +34,4 @@ struct FixedPropagator{N} <: Propagator{N}
 end
 FixedPropagator(fixed_point::AbstractVector) = FixedPropagator{length(fixed_point)}(fixed_point)
 transition_prob(prob::FixedPropagator, x_before, x_after, eps=1e-6) = 1.0 * (norm(prob.fixed_point - x_after) < eps)
-propagate(prop::FixedPropagator, x) = prop.fixed_point
+(prop::FixedPropagator)(x) = prop.fixed_point
