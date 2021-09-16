@@ -5,7 +5,7 @@ using ARHMM
 using StaticArrays
 using Distributions
 
-function data_generation(n, A, phi_list, sigma_list)
+function data_generation(n, A, prop_list)
     x = SVector{1, Float64}([0.0])
     z = 1
     xs = [x]
@@ -13,13 +13,7 @@ function data_generation(n, A, phi_list, sigma_list)
     for i in 1:n
         cat = Categorical(A[:, z])
         z_next = rand(cat)
-        x_next = nothing
-        if z_next==3
-            x_next = [0.0]
-        else
-            dist = MvNormal(phi_list[z] * x, sigma_list[z])
-            x_next = rand(dist)
-        end
+        x_next = prop_list[z_next](x)
         x, z = x_next, z_next
         push!(xs, SVector{1, Float64}(x))
         push!(zs, z)
@@ -27,32 +21,25 @@ function data_generation(n, A, phi_list, sigma_list)
     return xs, zs
 end
 
-phi1 = Diagonal(ones(1))
-phi2 = Diagonal(ones(1))
-phi3 = Diagonal(zeros(1))
-sigma1 = Diagonal(ones(1)*0.1)
-sigma2 = Diagonal(ones(1)*0.4)
-sigma3 = Diagonal(ones(1)*3)
+prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.01]), [0.05])
+prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.01]), [-0.05])
+prop3 = FixedPropagator([0.0])
+prop_list = [prop1, prop2, prop3]
+A = [0.90 0.00 1.0;
+     0.10 0.90 0.0;
+     0.00 0.10 0.0]
+xs, zs = data_generation(300, A, prop_list)
 
-phi_list = [phi1, phi2, phi3]
-sigma_list = [sigma1, sigma2, sigma3]
-
-A = [0.9 0. 1.; 
-     0.1 0.9 0.0;
-     0.0 0.1 0.0]
-
-xs, zs = data_generation(1000, A, phi_list, sigma_list)
-
-hs = HiddenStates(xs, 3)
+#=
+hs = HiddenStates(xs, 2)
 mp = ModelParameters(1, A, phi_list, sigma_list)
 @time ARHMM.update_hidden_states!(hs, mp, xs)
+=#
 
+#=
 zs_pred = [Float64(argmax(a)) for a in hs.alpha_cache_vec]
 using Plots
 plot(zs)
-plot!(zs_pred)
-
-
-
+=#
 
 #@time ARHMM.update_model_parameters!(hs, mp, xs)
