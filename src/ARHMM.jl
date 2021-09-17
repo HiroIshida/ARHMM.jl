@@ -88,38 +88,43 @@ function update_hidden_states!(hs::HiddenStates{N, M}, params::ModelParameters{N
     scaled_beta_backward!(hs, params, seq)
 end
 
-function alpha_forward!(
-        hs::HiddenStates{N, M}, mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
+function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
+    n_seq = length(seq)
+    alpha_seq = [zeros(M) for _ in 1:n_seq-1]
+
     x1, x2 = seq[1:2]
     px1 = 1.0 # deterministic x 
-    hs.alpha_seq[1] = probs_linear_prop(mp, x1, x2) .* mp.pmf_z1 * px1
+    alpha_seq[1] = probs_linear_prop(mp, x1, x2) .* mp.pmf_z1 * px1
 
-    for t in 2:length(seq) - 1
-        alpha_tm1 = hs.alpha_seq[t-1]
-        alpha_t = hs.alpha_seq[t]
+    for t in 2:n_seq - 1
+        alpha_tm1 = alpha_seq[t-1]
+        alpha_t = alpha_seq[t]
         x_t, x_tp1 = seq[t:t+1]
         for i in 1:M
             integral_term = sum(mp.A[i, j] * alpha_tm1[j] for j in 1:M)
             alpha_t[i] = transition_prob(mp.prop_list[i], x_t, x_tp1) * integral_term
         end
     end
+    return alpha_seq
 end
 
-function beta_backward!(
-        hs::HiddenStates{N, M}, mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
+function beta_backward(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
     n_seq = length(seq)
-    hs.beta_seq[n_seq - 1] = ones(M)
+    beta_seq = [zeros(M) for _ in 1:n_seq-1]
+
+    beta_seq[n_seq - 1] = ones(M)
     for t in length(seq)-2:-1:1
         x_tp1 = seq[t+1]
         x_tp2 = seq[t+2]
         for j in 1:M # phase at t
             sum = 0.0
             for i in 1:M # phase at t+1
-                sum +=mp.A[i, j] * transition_prob(mp.prop_list[i], x_tp1, x_tp2) * hs.beta_seq[t+1][i]
+                sum +=mp.A[i, j] * transition_prob(mp.prop_list[i], x_tp1, x_tp2) * beta_seq[t+1][i]
             end
-            hs.beta_seq[t][j] = sum
+            beta_seq[t][j] = sum
         end
    end
+   return beta_seq
 end
 
 end # module
