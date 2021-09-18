@@ -37,34 +37,27 @@ function HiddenStates(sequence::Sequence{N}, n_phase) where N
     HiddenStates{N, n_phase}(n_seq, alphas, betas, scales)
 end
 
-#=
-function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
-    function gamma(t)
-        alpha = hs.alpha_seq[t]
-        beta = hs.beta_seq[t]
-        alpha .* beta
+function emrun!(mp::ModelParameters{N, M}, seq::Sequence{N}, iter=20) where {N, M}
+    z_ests = nothing
+    for _ in 1:iter
+        z_ests, zz_ests = ARHMM.compute_hidden_states(mp, seq)
+        ARHMM.update_model_parameters!(mp, z_ests, zz_ests)
     end
+    return z_ests
+end
 
-    function xi(t, i, j)
-        alpha = hs.alpha_seq[t]
-        beta = hs.beta_seq[t + 1]
-        x_pre, x = seq[t:t+1]
-        tmp = prob_linear_prop(params.A_list[j], params.Sigma_list[j], x_pre, x)
-        ret = alpha[i] * params.A[j, i] * tmp * beta[j] / hs.scaling_cache_vec[t+2]
-    end
-    
+function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+    n_seq = length(z_ests) + 1
+
     # compute new pmf_z1
-    alpha1, beta1 = hs.alpha_seq[1], hs.beta_seq[1]
-    gamma1 = (alpha1 .* beta1)/dot(alpha1, beta1)
-    pmf_z1_new = gamma1 / sum(gamma1)
+    pmf_z1_new = z_ests[1] / sum(z_ests[1])
 
     # compute new A
-    println(params.A)
     A_new = zeros(M, M)
-    for t in 1:hs.n_seq - 2
+    for t in 1:n_seq - 2
         for i in 1:M
             for j in 1:M
-                A_new[i, j] += xi(t, i, j)
+                A_new[i, j] += zz_ests[t][i, j]
             end
         end
     end
@@ -73,11 +66,9 @@ function update_model_parameters!(hs::HiddenStates{N, M}, params::ModelParameter
     end
 
     # update
-    params.pmf_z1 = pmf_z1_new
-    params.A = A_new
-
+    mp.pmf_z1 = pmf_z1_new
+    mp.A = A_new
 end
-=#
 
 function probs_linear_prop(mp::ModelParameters, x_pre, x)
     gen = (transition_prob(prop, x_pre, x) for prop in mp.prop_list)
