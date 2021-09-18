@@ -91,12 +91,11 @@ end
 function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true) where {N, M}
     alphas, c_seq = alpha_forward(mp, seq, scaled)
     betas = beta_backward(mp, seq, c_seq)
-    z_ests = [a .* b/(scaled ? 1.0 : sum(a.*b)) for (a, b) in zip(alphas, betas)]
+    z_ests = [a .* b/(scaled ? 1.0 : sum(a.*b)) for (a, b) in zip(alphas, betas)] # γ in PRML
     n_seq = length(seq)
 
-    zz_ests = [MMatrix{M, M, Float64}(undef) for _ in 1:n_seq-2]
+    zz_ests = [MMatrix{M, M, Float64}(undef) for _ in 1:n_seq-2] # ξ in PRML
     for t in 1:n_seq - 2
-        println(t)
         # i is index for t, j for (t+1)
         for i in 1:M
             for j in 1:M
@@ -107,7 +106,6 @@ function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scal
             end
         end
     end
-    println("finish")
 
     return z_ests, zz_ests
 end
