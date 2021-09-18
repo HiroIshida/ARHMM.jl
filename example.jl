@@ -23,20 +23,21 @@ function data_generation(n, A, prop_list)
 end
 
 Random.seed!(2)
-prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [0.1])
-prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [-0.1])
+prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [0.2])
+prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [-0.2])
 prop_list = [prop1, prop2]
 A = [0.95 0.05;
      0.05 0.95]
 
-xs, zs = data_generation(50, A, prop_list)
+xs, zs = data_generation(3000, A, prop_list)
 mp = ModelParameters(1, A, prop_list)
-alpha_seq = ARHMM.alpha_forward(mp, xs)
-beta_seq = ARHMM.beta_backward(mp, xs)
+alpha_seq, c_seq = ARHMM.alpha_forward(mp, xs, true)
+beta_seq = ARHMM.beta_backward(mp, xs, c_seq)
 
 cat_pred = [(a .* b)/sum(a .* b) for (a, b) in zip(alpha_seq, beta_seq)]
 zs_pred = [argmax(z) for z in cat_pred]
 
+
 using Plots
-plot(zs)
-plot!(zs_pred)
+plot(zs[1:300])
+plot!(zs_pred[1:300])

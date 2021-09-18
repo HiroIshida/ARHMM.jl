@@ -112,7 +112,7 @@ function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true)
     return alphas, c_seq
 end
 
-function beta_backward(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
+function beta_backward(mp::ModelParameters{N, M}, seq::Sequence{N}, c_seq) where {N, M}
     n_seq = length(seq)
     betas = [zeros(M) for _ in 1:n_seq-1]
 
@@ -126,6 +126,7 @@ function beta_backward(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
                 sum +=mp.A[i, j] * transition_prob(mp.prop_list[i], x_tp1, x_tp2) * betas[t+1][i]
             end
             betas[t][j] = sum
+            betas[t][j] /= c_seq[t+2]
         end
    end
    return betas
