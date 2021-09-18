@@ -12,7 +12,7 @@ export HiddenStates, ModelParameters, update_hidden_states!
 const Sequence{N} = Vector{SVector{N, Float64}}
 
 mutable struct ModelParameters{N, M}
-    A::MMatrix{M, M}
+    A::MMatrix{M, M, Float64}
     prop_list::Vector{Propagator{N}}
     pmf_z1::SVector{M, Float64} #TODO should be Dilechlet
 end
@@ -88,7 +88,31 @@ function update_hidden_states!(hs::HiddenStates{N, M}, params::ModelParameters{N
     scaled_beta_backward!(hs, params, seq)
 end
 
-function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true) where {N, M}
+function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true) where {N, M}
+    alphas, c_seq = alpha_forward(mp, seq, scaled)
+    betas = beta_backward(mp, seq, c_seq)
+    z_ests = [a .* b/(scaled ? 1.0 : sum(a.*b)) for (a, b) in zip(alphas, betas)]
+    n_seq = length(seq)
+
+    zz_ests = [MMatrix{M, M, Float64}(undef) for _ in 1:n_seq-2]
+    for t in 1:n_seq - 2
+        println(t)
+        # i is index for t, j for (t+1)
+        for i in 1:M
+            for j in 1:M
+                x_t, x_tt = seq[t+1:t+2]
+                trans_prob = transition_prob(mp.prop_list[j], x_t, x_tt)
+                tmp = alphas[t][i] * mp.A[j, i] * trans_prob * betas[t+1][j]
+                zz_ests[t][i, j] = tmp/c_seq[t+2]
+            end
+        end
+    end
+    println("finish")
+
+    return z_ests, zz_ests
+end
+
+function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled) where {N, M}
     n_seq = length(seq)
     alphas = [zeros(M) for _ in 1:n_seq-1]
     c_seq = zeros(n_seq)
