@@ -22,18 +22,20 @@ function data_generation(n, A, prop_list)
     return xs, zs
 end
 
-#Random.seed!(2)
-prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [0.05])
-prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [-0.05])
+Random.seed!(0)
+prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [0.4])
+prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([0.1^2]), [-0.4])
 prop_list = [prop1, prop2]
-A = [0.95 0.05;
-     0.05 0.95]
+A = [0.85 0.15;
+     0.15 0.85]
 
-xs, zs = data_generation(1000, A, prop_list)
-mp = ModelParameters(1, A, prop_list)
+xs, zs = data_generation(3000, A, prop_list)
+A_pred_init = [0.5 0.5;
+               0.5 0.5]
+mp = ModelParameters(1, A_pred_init, prop_list)
 alpha_seq, c_seq = ARHMM.alpha_forward(mp, xs, true)
 beta_seq = ARHMM.beta_backward(mp, xs, c_seq)
-z_ests, zz_ests = ARHMM.compute_hidden_states(mp, xs)
+z_ests = ARHMM.emrun!(mp, xs, 20)
 z_preds = [argmax(z) for z in z_ests]
 
 println("done")
