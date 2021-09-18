@@ -40,7 +40,7 @@ end
 function emrun!(mp::ModelParameters{N, M}, seq::Sequence{N}, iter=20) where {N, M}
     z_ests = nothing
     for _ in 1:iter
-        z_ests, zz_ests = ARHMM.compute_hidden_states(mp, seq)
+        z_ests, zz_ests, log_likeli = ARHMM.compute_hidden_states(mp, seq)
         ARHMM.update_model_parameters!(mp, z_ests, zz_ests)
     end
     return z_ests
@@ -98,7 +98,10 @@ function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scal
         end
     end
 
-    return z_ests, zz_ests
+    # compute log_likelihood
+    log_likeli = sum(log(c) for c in c_seq)
+
+    return z_ests, zz_ests, log_likeli
 end
 
 function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled) where {N, M}
