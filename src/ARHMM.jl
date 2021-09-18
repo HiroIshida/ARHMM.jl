@@ -7,7 +7,7 @@ using Distributions
 export LinearPropagator, FixedPropagator, transition_prob
 include("propagator.jl")
 
-export HiddenStates, ModelParameters, update_hidden_states!
+export ModelParameters, emrun!
 
 const Sequence{N} = Vector{SVector{N, Float64}}
 
@@ -22,26 +22,12 @@ function ModelParameters(n_dim, A, prop_list)
     ModelParameters{n_dim, n_phase}(A, prop_list, pmf_z1)
 end
 
-mutable struct HiddenStates{N, M}
-    n_seq::Int
-    alpha_seq::Vector{MVector{M, Float64}}
-    beta_seq::Vector{MVector{M, Float64}}
-    scaling_cache_vec::Vector{Float64}
-end
-
-function HiddenStates(sequence::Sequence{N}, n_phase) where N
-    n_seq = length(sequence)
-    alphas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
-    betas = [MVector{n_phase, Float64}(undef) for _ in 1:n_seq-1]
-    scales = zeros(n_seq)
-    HiddenStates{N, n_phase}(n_seq, alphas, betas, scales)
-end
-
 function emrun!(mp::ModelParameters{N, M}, seq::Sequence{N}, iter=20) where {N, M}
     z_ests = nothing
     for _ in 1:iter
-        z_ests, zz_ests, log_likeli = ARHMM.compute_hidden_states(mp, seq)
-        ARHMM.update_model_parameters!(mp, z_ests, zz_ests)
+        z_ests, zz_ests, log_likeli = compute_hidden_states(mp, seq)
+        update_model_parameters!(mp, z_ests, zz_ests)
+        println(log_likeli)
     end
     return z_ests
 end
