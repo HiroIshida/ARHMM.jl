@@ -25,13 +25,12 @@ function ModelParameters(n_dim, A, prop_list)
     ModelParameters{n_dim, n_phase}(A, prop_list, pmf_z1)
 end
 
-function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+function update_pmf_z1!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+    mp.pmf_z1 = z_ests[1] / sum(z_ests[1])
+end
+
+function update_A!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
     n_seq = length(z_ests) + 1
-
-    # compute new pmf_z1
-    pmf_z1_new = z_ests[1] / sum(z_ests[1])
-
-    # compute new A
     A_new = zeros(M, M)
     for t in 1:n_seq - 2
         for i in 1:M
@@ -43,10 +42,12 @@ function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) wh
     for j in 1:M # normalize
         A_new[:, j] /= sum(A_new[:, j])
     end
-
-    # update
-    mp.pmf_z1 = pmf_z1_new
     mp.A = A_new
+end
+
+function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+    update_pmf_z1!(mp, z_ests, zz_ests)
+    update_A!(mp, z_ests, zz_ests)
 end
 
 function probs_linear_prop(mp::ModelParameters, x_pre, x)
