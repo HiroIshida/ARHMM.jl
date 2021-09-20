@@ -4,7 +4,7 @@ using StaticArrays
 
 abstract type Propagator{N} end
 
-struct LinearPropagator{N} <: Propagator{N}
+mutable struct LinearPropagator{N} <: Propagator{N}
     phi::SMatrix{N, N, Float64}
     cov::SMatrix{N, N, Float64}
     drift::SVector{N, Float64}
@@ -19,14 +19,14 @@ end
 
 function fit!(prop::LinearPropagator, x_seq, w_seq)
     n = length(w_seq)
-    x_sum = sum(x[t] * w[t] for t in 1:n-1)
-    y_sum = sum(x[t+1] * w[t] for t in 1:n-1)
-    xx_sum = sum(x[t] * x[t]' * w[t] for t in 1:n-1)
-    xy_sum = sum(x[t] * x[t+1]' * w[t] for t in 1:n-1)
+    x_sum = sum(x_seq[t] * w_seq[t] for t in 1:n-1)
+    y_sum = sum(x_seq[t+1] * w_seq[t] for t in 1:n-1)
+    xx_sum = sum(x_seq[t] * x_seq[t]' * w_seq[t] for t in 1:n-1)
+    xy_sum = sum(x_seq[t] * x_seq[t+1]' * w_seq[t] for t in 1:n-1)
     w_sum = sum(w_seq[1:n-1])
 
     phi_est = inv(w_sum * xx_sum - x_sum * x_sum') * (w_sum * xy_sum - x_sum * y_sum')
-    b_est = (y_sum - A_est' * x_sum) * (1.0/n)
+    b_est = (y_sum - phi_est' * x_sum) * (1.0/w_sum)
     prop.phi = phi_est
     prop.drift = b_est
 end
@@ -43,7 +43,7 @@ function (prop::LinearPropagator)(x)
     rand(dist)
 end
 
-struct FixedPropagator{N} <: Propagator{N}
+mutable struct FixedPropagator{N} <: Propagator{N}
     fixed_point::SVector{N, Float64}
 end
 FixedPropagator(fixed_point::AbstractVector) = FixedPropagator{length(fixed_point)}(fixed_point)

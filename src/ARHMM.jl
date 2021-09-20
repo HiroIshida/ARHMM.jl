@@ -25,11 +25,11 @@ function ModelParameters(n_dim, A, prop_list)
     ModelParameters{n_dim, n_phase}(A, prop_list, pmf_z1)
 end
 
-function update_pmf_z1!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+function update_pmf_z1!(mp::ModelParameters{N, M}, z_ests, zz_ests, x_seq) where {N, M}
     mp.pmf_z1 = z_ests[1] / sum(z_ests[1])
 end
 
-function update_A!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
+function update_A!(mp::ModelParameters{N, M}, z_ests, zz_ests, x_seq) where {N, M}
     n_seq = length(z_ests) + 1
     A_new = zeros(M, M)
     for t in 1:n_seq - 2
@@ -45,9 +45,17 @@ function update_A!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
     mp.A = A_new
 end
 
-function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
-    update_pmf_z1!(mp, z_ests, zz_ests)
-    update_A!(mp, z_ests, zz_ests)
+function update_prop_list!(mp::ModelParameters{N, M}, z_ests, zz_ests, x_seq) where {N, M}
+    for i in 1:M
+        w_seq = [z_est[i] for z_est in z_ests]
+        fit!(mp.prop_list[i], x_seq, w_seq)
+    end
+end
+
+function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests, x_seq) where {N, M}
+    update_pmf_z1!(mp, z_ests, zz_ests, x_seq)
+    update_A!(mp, z_ests, zz_ests, x_seq)
+    update_prop_list!(mp, z_ests, zz_ests, x_seq)
 end
 
 function probs_linear_prop(mp::ModelParameters, x_pre, x)
