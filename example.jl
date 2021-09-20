@@ -33,9 +33,7 @@ xs, zs = data_generation(3000, A, prop_list)
 A_pred_init = [0.5 0.5;
                0.5 0.5]
 mp = ModelParameters(1, A_pred_init, prop_list)
-alpha_seq, c_seq = ARHMM.alpha_forward(mp, xs, true)
-beta_seq = ARHMM.beta_backward(mp, xs, c_seq)
-z_ests = ARHMM.emrun!(mp, xs, 20)
+z_ests = emrun!(mp, xs, 20)
 z_preds = [argmax(z) for z in z_ests]
 
 println("done")

@@ -1,5 +1,4 @@
 using LinearAlgebra
-using PyPlot
 
 mutable struct State
     x
@@ -51,7 +50,7 @@ function (attr::SequentialAttractor)(state, phase, dt)
     return state, phase_new
 end
 
-function create_dataset(N, debug_plot)
+function create_dataset(N)
     states_list = []
     phases_list = []
     for i in 1:N
@@ -71,14 +70,6 @@ function create_dataset(N, debug_plot)
         end
         push!(states_list, states)
         push!(phases_list, phases)
-    end
-    if debug_plot
-        for i in 1:Int(max(N * 0.1, 1))
-            states = states_list[i]
-            x_seq = [s.x[1] for s in states]
-            y_seq = [s.x[2] for s in states]
-            plot(x_seq, y_seq)
-        end
     end
     return states_list, phases_list
 end

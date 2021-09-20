@@ -4,6 +4,9 @@ using LinearAlgebra
 using StaticArrays
 using Distributions
 
+export create_dataset
+/include("sample_dataset.jl")
+
 export LinearPropagator, FixedPropagator, transition_prob
 include("propagator.jl")
 
@@ -58,11 +61,6 @@ end
 
 function probs_linear_prop(mp::ModelParameters, x_pre, x)
     gen = (transition_prob(prop, x_pre, x) for prop in mp.prop_list)
-end
-
-function update_hidden_states!(hs::HiddenStates{N, M}, params::ModelParameters{N, M}, seq) where {N, M}!
-    scaled_alpha_forward!(hs, params, seq)
-    scaled_beta_backward!(hs, params, seq)
 end
 
 function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true) where {N, M}
