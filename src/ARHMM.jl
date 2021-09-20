@@ -5,12 +5,12 @@ using StaticArrays
 using Distributions
 
 export create_dataset
-/include("sample_dataset.jl")
+include("sample_dataset.jl")
 
 export LinearPropagator, FixedPropagator, transition_prob
 include("propagator.jl")
 
-export ModelParameters, emrun!
+export ModelParameters, compute_hidden_states, update_model_parameters!
 
 const Sequence{N} = Vector{SVector{N, Float64}}
 
@@ -23,16 +23,6 @@ function ModelParameters(n_dim, A, prop_list)
     n_phase = size(A)[1]
     pmf_z1 = zeros(n_phase); pmf_z1[1] = 1.0 # because initial phase must be phase 1
     ModelParameters{n_dim, n_phase}(A, prop_list, pmf_z1)
-end
-
-function emrun!(mp::ModelParameters{N, M}, seq::Sequence{N}, iter=20) where {N, M}
-    z_ests = nothing
-    for _ in 1:iter
-        z_ests, zz_ests, log_likeli = compute_hidden_states(mp, seq)
-        update_model_parameters!(mp, z_ests, zz_ests)
-        println(log_likeli)
-    end
-    return z_ests
 end
 
 function update_model_parameters!(mp::ModelParameters{N, M}, z_ests, zz_ests) where {N, M}
