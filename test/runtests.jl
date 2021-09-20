@@ -42,7 +42,7 @@ end
         log_likelis = []
         for _ in 1:2 # if more than 2, usually likelihood will be static
             z_ests, zz_ests, log_likeli = compute_hidden_states(mp, xs)
-            update_model_parameters!(mp, z_ests, zz_ests)
+            update_model_parameters!(mp, z_ests, zz_ests, xs)
             push!(log_likelis, log_likeli)
         end
         z_preds = [argmax(z) for z in z_ests]
