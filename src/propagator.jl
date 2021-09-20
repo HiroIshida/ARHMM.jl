@@ -17,6 +17,20 @@ function LinearPropagator(phi, cov, drift)
     LinearPropagator{N}(phi_, cov_, drift_)
 end
 
+function fit!(prop::LinearPropagator, x_seq, w_seq)
+    n = length(w_seq)
+    x_sum = sum(x[t] * w[t] for t in 1:n-1)
+    y_sum = sum(x[t+1] * w[t] for t in 1:n-1)
+    xx_sum = sum(x[t] * x[t]' * w[t] for t in 1:n-1)
+    xy_sum = sum(x[t] * x[t+1]' * w[t] for t in 1:n-1)
+    w_sum = sum(w_seq[1:n-1])
+
+    phi_est = inv(w_sum * xx_sum - x_sum * x_sum') * (w_sum * xy_sum - x_sum * y_sum')
+    b_est = (y_sum - A_est' * x_sum) * (1.0/n)
+    prop.phi = phi_est
+    prop.drift = b_est
+end
+
 function transition_prob(prop::LinearPropagator, x_before, x_after)
     mean = prop.phi * x_before + prop.drift
     dist = MvNormal(mean, Matrix(prop.cov))
