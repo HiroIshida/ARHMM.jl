@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags: 'v*'
+  pull_request:
+    branches:
+      - master
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia_version:
+          - '1.6.2'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+
+    steps:
+
+      - name: Cancel CI on previous commits
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+      
+      # Setup environment
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.julia_version }}
+
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: |
+            ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('Artifacts.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-packages
+        with:
+          path: |
+            ~/.julia/packages
+            ~/.julia/compiled
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('Project.toml', 'test/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+      # Julia Dependencies
+      - name: Install Julia dependencies
+        uses: julia-actions/julia-buildpkg@latest
+        
+      # Run tests
+      - name: Run tests
+        uses: julia-actions/julia-runtest@latest
