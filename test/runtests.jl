@@ -25,31 +25,55 @@ function data_generation(n, A, prop_list)
     return xs, zs
 end
 
-@testset "test_randomwalk" begin
-    for with_noise in [false, true]
-        noise_std = with_noise ? 0.1 : 1e-4
-        prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [0.4])
-        prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [-0.4])
-        prop_list = [prop1, prop2]
-        A = [0.85 0.15;
-             0.15 0.85]
-        xs, zs = data_generation(3000, A, prop_list)
-        A_pred_init = [0.5 0.5;
-                       0.5 0.5]
-        mp = ModelParameters(1, A_pred_init, prop_list)
+function two_phase_correct_ratio(z_seq_gt, z_seq_pred)
+    n_all = length(z_seq_gt)
+    n_success = sum(z_seq_gt .== z_seq_pred)
+    ratio = n_success * 1.0 / n_all
+    if ratio < 0.5
+        ratio = 1.0 - ratio
+    end
+    return ratio
+end
 
+function single_case_test(mp, xs, zs)
+    function train_hmm!(mp::ModelParameters)
         z_ests = nothing
         log_likelis = []
-        for _ in 1:2 # if more than 2, usually likelihood will be static
+        for k in 1:60
             z_ests, zz_ests, log_likeli = compute_hidden_states(mp, xs)
             update_model_parameters!(mp, z_ests, zz_ests, xs)
             push!(log_likelis, log_likeli)
+            if k > 1 && abs(log_likelis[end] - log_likelis[end-1]) < 1e-3
+                break
+            end
         end
         z_preds = [argmax(z) for z in z_ests]
-        @test issorted(log_likelis)
-        if ~with_noise 
-            # With no-noise case hidden state should match exactly
-            @test zs[1:end-1] == z_preds
-        end
+        return z_preds, log_likelis
     end
+
+    z_preds, log_likelis = train_hmm!(mp)
+    @test issorted(log_likelis)
+    @test two_phase_correct_ratio(zs[1:end-1], z_preds) > 0.9
+    println(two_phase_correct_ratio(zs[1:end-1], z_preds))
+end
+
+@testset "test_randomwalk" begin
+    noise_std = 1e-1
+    prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [0.4])
+    prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [-0.4])
+    prop_list = [prop1, prop2]
+    A = [0.85 0.15;
+         0.15 0.85]
+    xs, zs = data_generation(500, A, prop_list)
+    prop1_init = LinearPropagator(Diagonal([1.1]), Diagonal([(0.8 * noise_std)^2]), [0.5])
+    prop2_init = LinearPropagator(Diagonal([1.2]), Diagonal([(1.0 * noise_std)^2]), [-0.2])
+    prop_list_pred_init = [prop1_init, prop2_init]
+    A_pred_init = [0.95 0.05;
+                   0.05 0.95]
+    mp = ModelParameters(1, A_pred_init, prop_list_pred_init)
+    single_case_test(mp, xs, zs)
+
+    A_init_error = sum((A_pred_init .- A).^2)
+    A_error = sum((mp.A .- A).^2)
+    @test A_error < A_init_error
 end
