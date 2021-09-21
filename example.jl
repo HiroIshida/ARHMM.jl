@@ -8,16 +8,18 @@ using Distributions
 
 Random.seed!(0)
 states_list, phases_list = create_dataset(80)
-index = 10
-xs = [SVector{2, Float64}(state.x) for state in states_list[index]]
+index = 8
+
+seq = states_list[index]
+xs = [SVector{4, Float64}(vcat(seq[t].x, seq[t+1].x)) for t in 1:length(seq)-1]
 zs = phases_list[index]
 
-prop1 = LinearPropagator(Diagonal(ones(2)), Diagonal(ones(2) * 1.0), zeros(2))
-prop2 = LinearPropagator(Diagonal(ones(2)), Diagonal(ones(2) * 1.0), zeros(2))
+prop1 = LinearPropagator(Diagonal(ones(4)), Diagonal(ones(4) * 1.0), zeros(4))
+prop2 = LinearPropagator(Diagonal(ones(4)), Diagonal(ones(4) * 1.0), zeros(4))
 prop_list = [prop1, prop2]
-A = [0.95 0.0;
-     0.05 1.0]
-mp = ModelParameters(2, A, prop_list)
+A = [0.99 0.0;
+     0.01 1.0]
+mp = ModelParameters(4, A, prop_list)
 
 z_ests = nothing
 log_likelis = []
@@ -30,3 +32,4 @@ end
 zs_est = [z[1] for z in z_ests]
 using Plots
 plot(zs_est)
+plot!(zs)
