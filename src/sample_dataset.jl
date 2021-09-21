@@ -67,6 +67,7 @@ function create_dataset(N)
             s, phase = seqattr(s, phase, dt)
             isnothing(phase) && break
             push!(states, s)
+            push!(phases, phase)
         end
         push!(states_list, states)
         push!(phases_list, phases)
