@@ -65,8 +65,8 @@ end
     A = [0.85 0.15;
          0.15 0.85]
     xs, zs = data_generation(500, A, prop_list)
-    prop1_init = LinearPropagator(Diagonal([1.1]), Diagonal([(0.8 * noise_std)^2]), [0.5])
-    prop2_init = LinearPropagator(Diagonal([1.2]), Diagonal([(1.0 * noise_std)^2]), [-0.2])
+    prop1_init = LinearPropagator(Diagonal([1.1]), Diagonal([(noise_std)^2]), [0.4])
+    prop2_init = LinearPropagator(Diagonal([1.2]), Diagonal([(noise_std)^2]), [-0.4])
     prop_list_pred_init = [prop1_init, prop2_init]
     A_pred_init = [0.95 0.05;
                    0.05 0.95]
@@ -76,4 +76,25 @@ end
     A_init_error = sum((A_pred_init .- A).^2)
     A_error = sum((mp.A .- A).^2)
     @test A_error < A_init_error
+end
+
+@testset "test_randomwalk_switch_once" begin
+    noise_std = 1e-1
+    prop1 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [0.4])
+    prop2 = LinearPropagator(Diagonal([1.0]), Diagonal([noise_std^2]), [-0.4])
+    prop_list = [prop1, prop2]
+    A = [0.99 0.0;
+         0.01 1.0]
+    xs, zs = data_generation(500, A, prop_list)
+    prop1_init = LinearPropagator(Diagonal([1.0]), Diagonal([(1.2 * noise_std)^2]), [0.1])
+    prop2_init = LinearPropagator(Diagonal([1.0]), Diagonal([(2.0 * noise_std)^2]), [-0.6])
+    prop_list_pred_init = [prop1_init, prop2_init]
+    A_pred_init = [0.95 0.0;
+                   0.05 1.0]
+    mp = ModelParameters(1, A_pred_init, prop_list_pred_init)
+    single_case_test(mp, xs, zs)
+
+    # In this case, due to sparse observed case of switching, estimation of 
+    # stochastic matrix doesn't much well to the gt, but at leaset ... j
+    @test A_pred_init[2, 2] == 1.0 # this must invariant
 end

@@ -35,7 +35,9 @@ function update_A!(mp::ModelParameters{N, M}, z_ests, zz_ests, x_seq) where {N, 
     for t in 1:n_seq - 2
         for i in 1:M
             for j in 1:M
-                A_new[i, j] += zz_ests[t][i, j]
+                # Note that our stochastic matrix is different (transposed) from
+                # the one in PRML
+                A_new[j, i] += zz_ests[t][i, j]
             end
         end
     end
