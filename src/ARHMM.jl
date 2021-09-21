@@ -64,10 +64,10 @@ function probs_linear_prop(mp::ModelParameters, x_pre, x)
     gen = (transition_prob(prop, x_pre, x) for prop in mp.prop_list)
 end
 
-function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled=true) where {N, M}
-    alphas, c_seq = alpha_forward(mp, seq, scaled)
+function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
+    alphas, c_seq = alpha_forward(mp, seq)
     betas = beta_backward(mp, seq, c_seq)
-    z_ests = [a .* b/(scaled ? 1.0 : sum(a.*b)) for (a, b) in zip(alphas, betas)] # γ in PRML
+    z_ests = [a .* b for (a, b) in zip(alphas, betas)] # γ in PRML
     n_seq = length(seq)
 
     zz_ests = [MMatrix{M, M, Float64}(undef) for _ in 1:n_seq-2] # ξ in PRML
@@ -89,16 +89,16 @@ function compute_hidden_states(mp::ModelParameters{N, M}, seq::Sequence{N}, scal
     return z_ests, zz_ests, log_likeli
 end
 
-function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled) where {N, M}
+function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}) where {N, M}
     n_seq = length(seq)
     alphas = [zeros(M) for _ in 1:n_seq-1]
     c_seq = zeros(n_seq)
-    c_seq[1] = (scaled ? 1.0 : 1.0)
+    c_seq[1] = 1.0
 
     x1, x2 = seq[1:2]
     px1 = 1.0 # deterministic x 
     tmp = probs_linear_prop(mp, x1, x2) .* mp.pmf_z1 * px1
-    c_seq[2] = (scaled ? sum(tmp) : 1.0)
+    c_seq[2] = sum(tmp)
     alphas[1] = tmp/c_seq[2]
 
     for t in 2:n_seq - 1
@@ -107,7 +107,7 @@ function alpha_forward(mp::ModelParameters{N, M}, seq::Sequence{N}, scaled) wher
             integral_term = sum(mp.A[i, j] * alphas[t-1][j] for j in 1:M)
             alphas[t][i] = transition_prob(mp.prop_list[i], x_t, x_tp1) * integral_term
         end
-        c_seq[t+1] = (scaled ? sum(alphas[t]) : 1.0)
+        c_seq[t+1] = sum(alphas[t])
         alphas[t] /= c_seq[t+1]
     end
     return alphas, c_seq
