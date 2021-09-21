@@ -25,10 +25,18 @@ function fit!(prop::LinearPropagator, x_seq, w_seq)
     xy_sum = sum(x_seq[t] * x_seq[t+1]' * w_seq[t] for t in 1:n-1)
     w_sum = sum(w_seq[1:n-1])
 
+    # Thanks to Gauss-markov theorem, we can separate fitting processes into
+    # first, non probabilistic term  
     phi_est = inv(w_sum * xx_sum - x_sum * x_sum') * (w_sum * xy_sum - x_sum * y_sum')
     b_est = (y_sum - phi_est' * x_sum) * (1.0/w_sum)
+
+    # and covariance part
+    self_cross(vec) = vec * vec'
+    cov_est = sum(w_seq[t] * self_cross(x_seq[t+1] - (phi_est * x_seq[t] + b_est)) for t in 1:n-1)/w_sum
+
     prop.phi = phi_est
     prop.drift = b_est
+    prop.cov = cov_est
 end
 
 function transition_prob(prop::LinearPropagator, x_before, x_after)

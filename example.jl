@@ -29,11 +29,11 @@ prop_list = [prop1, prop2]
 A = [0.85 0.15;
      0.15 0.85]
 
-xs, zs = data_generation(300, A, prop_list)
+xs, zs = data_generation(500, A, prop_list)
 A_pred_init = [0.9 0.1;
                0.1 0.9]
-prop1_init = LinearPropagator(Diagonal([1.2]), Diagonal([0.1^2]), [0.2])
-prop2_init = LinearPropagator(Diagonal([1.1]), Diagonal([0.1^2]), [-0.2])
+prop1_init = LinearPropagator(Diagonal([1.2]), Diagonal([0.08^2]), [0.4])
+prop2_init = LinearPropagator(Diagonal([1.1]), Diagonal([0.12^2]), [-0.4])
 prop_list_init = [prop1_init, prop2_init]
 mp = ModelParameters(1, A_pred_init, prop_list_init)
 
@@ -50,4 +50,3 @@ using Plots
 T = 100
 plot(zs[1:T])
 plot!(z_preds[1:T])
-
