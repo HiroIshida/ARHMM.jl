@@ -36,22 +36,17 @@ function two_phase_correct_ratio(z_seq_gt, z_seq_pred)
 end
 
 function single_case_test(mp, xs, zs)
-    function train_hmm!(mp::ModelParameters)
-        z_ests = nothing
-        log_likelis = []
-        for k in 1:60
-            z_ests, zz_ests, log_likeli = compute_hidden_states(mp, xs)
-            update_model_parameters!(mp, z_ests, zz_ests, xs)
-            push!(log_likelis, log_likeli)
-            if k > 1 && abs(log_likelis[end] - log_likelis[end-1]) < 1e-3
-                break
-            end
+    hs = HiddenStates(length(xs), 2)
+    log_likelis = []
+    for k in 1:60
+        log_likeli = update_hidden_states!(hs, mp, xs)
+        update_model_parameters!(hs, mp, xs)
+        push!(log_likelis, log_likeli)
+        if k > 1 && abs(log_likelis[end] - log_likelis[end-1]) < 1e-3
+            break
         end
-        z_preds = [argmax(z) for z in z_ests]
-        return z_preds, log_likelis
     end
-
-    z_preds, log_likelis = train_hmm!(mp)
+    z_preds = [argmax(z) for z in hs.z_ests]
     @test issorted(log_likelis)
     @test two_phase_correct_ratio(zs[1:end-1], z_preds) > 0.9
     println(two_phase_correct_ratio(zs[1:end-1], z_preds))
