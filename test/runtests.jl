@@ -47,7 +47,7 @@ function single_case_test(mp, xs, zs)
         end
     end
     z_preds = [argmax(z) for z in hs.z_ests]
-    @test issorted(log_likelis)
+    @test issorted(log_likelis[1:end-1])
     @test two_phase_correct_ratio(zs[1:end-1], z_preds) > 0.9
     println(two_phase_correct_ratio(zs[1:end-1], z_preds))
 end
