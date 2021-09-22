@@ -40,7 +40,6 @@ function fit!(prop::LinearPropagator{N}, xs_list, ws_list) where N
     phi_est = inv(w_sum * xx_sum - x_sum * x_sum') * (w_sum * xy_sum - x_sum * y_sum')
     b_est = vec((y_sum - phi_est' * x_sum) * (1.0/w_sum))
 
-    # and covariance part
     cov_est = zeros(N, N)
     for (xs, ws) in zip(xs_list, ws_list)
         X = xs.data[:, 1:end-1]
@@ -48,10 +47,9 @@ function fit!(prop::LinearPropagator{N}, xs_list, ws_list) where N
         tmp = Y - (phi_est * X .+ b_est)
         cov_est += tmp * Diagonal(ws) * tmp'/w_sum
     end
-
     prop.phi = phi_est
     prop.drift = b_est
-    prop.cov = cov_est
+    prop.cov = Hermitian(cov_est)
 end
 
 function transition_prob(prop::LinearPropagator, x_before, x_after)
