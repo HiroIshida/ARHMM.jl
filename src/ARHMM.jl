@@ -4,15 +4,28 @@ using LinearAlgebra
 using StaticArrays
 using Distributions
 
-export create_dataset
-include("sample_dataset.jl")
-
 export LinearPropagator, FixedPropagator, transition_prob
 include("propagator.jl")
 
-export HiddenStates, ModelParameters, update_hidden_states!, update_model_parameters!
+export HiddenStates, ModelParameters, update_hidden_states!, update_model_parameters!, Sequence
 
-const Sequence{N} = Vector{SVector{N, Float64}}
+struct Sequence{N}
+    data::Matrix{Float64}
+    n_seq::Int
+end
+function Sequence(data::Vector)
+    n_seq = length(data)
+    n_dim = length(data[1])
+    mat = zeros(n_dim, n_seq)
+    for i in 1:n_seq
+        mat[:, i] = data[i]
+    end
+    Sequence(mat)
+end
+function Sequence(data::Matrix) 
+    n_dim, n_seq = size(data)
+    Sequence{n_dim}(data, n_seq)
+end
 
 mutable struct ModelParameters{N, M}
     A::MMatrix{M, M, Float64}
@@ -175,5 +188,8 @@ function beta_backward!(hs::HiddenStates{M}, mp::ModelParameters{N, M}, seq::Seq
         end
    end
 end
+
+export create_dataset
+include("sample_dataset.jl")
 
 end # module

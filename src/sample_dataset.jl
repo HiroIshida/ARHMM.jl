@@ -72,5 +72,11 @@ function create_dataset(N)
         push!(states_list, states)
         push!(phases_list, phases)
     end
-    return states_list, phases_list
+
+    seq_list = Sequence{2}[]
+    for states in states_list
+        seq = Sequence([s.x for s in states])
+        push!(seq_list, seq)
+    end
+    return seq_list, phases_list
 end
