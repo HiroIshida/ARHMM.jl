@@ -102,6 +102,12 @@ function update_model_parameters!(hs_list::Vector{HiddenStates{M}}, mp::ModelPar
     update_prop_list!(hs_list, mp, xs_list)
 end
 
+function update_model_parameters!(hs::HiddenStates{M}, mp::ModelParameters{N, M}, xs) where {N, M}
+    hs_list = Vector{HiddenStates{M}}([hs])
+    xs_list = Vector{Sequence{N}}([xs])
+    update_model_parameters!(hs_list, mp, xs_list)
+end
+
 function probs_linear_prop(mp::ModelParameters, x_pre, x)
     gen = (transition_prob(prop, x_pre, x) for prop in mp.prop_list)
 end
