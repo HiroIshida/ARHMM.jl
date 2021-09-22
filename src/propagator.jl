@@ -25,24 +25,29 @@ function fit!(prop::LinearPropagator{N}, xs_list, ws_list) where N
     w_sum = 0.0
 
     for (xs, ws) in zip(xs_list, ws_list)
-        x_sum += sum(xs[t] * ws[t] for t in 1:length(xs)-1)
-        y_sum += sum(xs[t+1] * ws[t] for t in 1:length(xs)-1)
-        xx_sum += sum(xs[t] * xs[t]' * ws[t] for t in 1:length(xs)-1)
-        xy_sum += sum(xs[t] * xs[t+1]' * ws[t] for t in 1:length(xs)-1)
-        w_sum += sum(ws[1:end-1])
+        X = xs.data[:, 1:end-1]
+        Y = xs.data[:, 2:end]
+
+        x_sum += sum((ws.*X')', dims=2)
+        y_sum += sum((ws.*Y')', dims=2)
+        xx_sum += X * Diagonal(ws) * X'
+        xy_sum += X * Diagonal(ws) * Y'
+        w_sum += sum(ws)
     end
 
     # Thanks to Gauss-markov theorem, we can separate fitting processes into
     # first, non probabilistic term  
     phi_est = inv(w_sum * xx_sum - x_sum * x_sum') * (w_sum * xy_sum - x_sum * y_sum')
-    b_est = (y_sum - phi_est' * x_sum) * (1.0/w_sum)
+    b_est = vec((y_sum - phi_est' * x_sum) * (1.0/w_sum))
 
     # and covariance part
-    self_cross(vec) = vec * vec'
     cov_est = zeros(N, N)
-    cov_est = sum(
-                sum(ws[t] * self_cross(xs[t+1] - (phi_est * xs[t] + b_est)) for t in 1:length(xs)-1)/w_sum 
-                for (xs, ws) in zip(xs_list, ws_list))
+    for (xs, ws) in zip(xs_list, ws_list)
+        X = xs.data[:, 1:end-1]
+        Y = xs.data[:, 2:end]
+        tmp = Y - (phi_est * X .+ b_est)
+        cov_est += tmp * Diagonal(ws) * tmp'/w_sum
+    end
 
     prop.phi = phi_est
     prop.drift = b_est

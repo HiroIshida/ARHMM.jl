@@ -22,6 +22,7 @@ function data_generation(n, A, prop_list)
         push!(xs, SVector{1, Float64}(x))
         push!(zs, z)
     end
+    xs = Sequence(xs)
     return xs, zs
 end
 
@@ -36,7 +37,7 @@ function two_phase_correct_ratio(z_seq_gt, z_seq_pred)
 end
 
 function single_case_test(mp, xs, zs)
-    hs = HiddenStates(length(xs), 2)
+    hs = HiddenStates(xs.n_seq, 2)
     log_likelis = []
     for k in 1:60
         log_likeli = update_hidden_states!(hs, mp, xs)
