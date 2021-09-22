@@ -72,5 +72,11 @@ function create_dataset(N)
         push!(states_list, states)
         push!(phases_list, phases)
     end
-    return states_list, phases_list
+
+    seq_list = Sequence{4}[]
+    for states in states_list
+        seq = Sequence([vcat(states[t].x, states[t+1].x) for t in 1:length(states)-1])
+        push!(seq_list, seq)
+    end
+    return seq_list, phases_list
 end
