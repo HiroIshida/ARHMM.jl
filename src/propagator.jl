@@ -5,16 +5,16 @@ using StaticArrays
 abstract type Propagator{N} end
 
 mutable struct LinearPropagator{N} <: Propagator{N}
-    phi::SMatrix{N, N, Float64}
-    cov::SMatrix{N, N, Float64}
-    drift::SVector{N, Float64}
+    phi::Matrix{Float64}
+    cov::Matrix{Float64}
+    drift::Vector{Float64}
 end
 function LinearPropagator(phi, cov, drift)
     N = size(phi)[1]
-    phi_ = SMatrix{N, N, Float64}(phi)
-    cov_ = SMatrix{N, N, Float64}(cov)
-    drift_ = SVector{N, Float64}(drift)
-    LinearPropagator{N}(phi_, cov_, drift_)
+    @assert size(cov) == (N, N)
+    @assert size(phi) == (N, N)
+    @assert size(drift) == (N, )
+    LinearPropagator{N}(phi, cov, drift)
 end
 
 function fit!(prop::LinearPropagator{N}, xs_list, ws_list) where N
