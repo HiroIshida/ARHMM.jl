@@ -1,6 +1,7 @@
 using LinearAlgebra
 using StaticArrays
 using ARHMM
+using JSON
 using PyCall
 
 py"""
@@ -10,8 +11,12 @@ def load_pickle(fpath):
     with open(fpath, "rb") as f:
         data = pickle.load(f)
     return data
+def dump_pickle(obj, fpath):
+    with open(fpath, "wb") as f:
+        pickle.dump(obj, f)
 """
 load_pickle = py"load_pickle"
+dump_pickle = py"dump_pickle"
 
 function get_sequences(cache_file_name)
     chunk = load_pickle(cache_file_name)
@@ -56,7 +61,6 @@ mp = ModelParameters(dim_phase, A, prop_list)
 
 hs_list = [HiddenStates(xs.n_seq, n_phase) for xs in xs_list]
 for i in 1:20
-    println(i)
     loglikeli = 0.0
     for j in 1:length(hs_list)
         hs = hs_list[j]
@@ -64,7 +68,7 @@ for i in 1:20
         loglikeli += update_hidden_states!(hs, mp, xs)
     end
     update_model_parameters!(hs_list, mp, xs_list)
-    println(loglikeli)
+    println("epoch: ", i, ", loglikeli: ", loglikeli) 
 end
 
 # converting list of matrix
@@ -76,4 +80,19 @@ for hs in hs_list
         mat[:, i] = hs.z_ests[i]
     end
     push!(mat_list, mat')
+end
+
+phase_seq_list = []
+for hs in hs_list
+    n_seq = length(hs.z_ests)
+    phase_seq = [argmax(hs.z_ests[i]) for i in 1:n_seq]
+    push!(phase_seq_list, phase_seq)
+end
+
+# dump result
+result_filename = joinpath(expanduser("~"), ".kyozi/arhmm_result.pickle")
+result_filename_debug_json = joinpath(expanduser("~"), ".kyozi/arhmm_result.json")
+dump_pickle(phase_seq_list, result_filename)
+open(result_filename_debug_json, "w") do f
+    write(f, JSON.json(phase_seq_list, 2))
 end
