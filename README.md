@@ -9,6 +9,6 @@ julia --project -e 'ENV["PTYHON"] = "/usr/bin/python"; import Pkg; import PyCall
 julia --project -e 'import Pkg; Pkg.test()'
 ```
 
-`` 
+``` 
 julia --project ./python/segment.jl 3
 ```
