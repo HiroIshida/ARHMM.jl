@@ -24,7 +24,7 @@ jobs:
         julia_version:
           - '1.6.2'
         os:
-          - ubuntu-latest
+          - ubuntu-18.04
         arch:
           - x64
 
@@ -67,3 +67,7 @@ jobs:
       # Run tests
       - name: Run tests
         uses: julia-actions/julia-runtest@latest
+
+      - name: Run pycall test
+        run: |
+            julia -e 'ENV["PTYHON"] = "/usr/bin/python"; import Pkg; import PyCall; Pkg.build("PyCall");'
