@@ -6,11 +6,16 @@ using PyCall
 
 py"""
 import pickle
- 
-def load_pickle(fpath):
-    with open(fpath, "rb") as f:
-        data = pickle.load(f)
-    return data
+
+def load_pickle(filename):
+    try:
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+    except UnicodeDecodeError:
+        print('probably cache file was created by 2.x but attempt to load by 3.x')
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f, encoding='latin1')
+    return obj
 def dump_pickle(obj, fpath):
     with open(fpath, "wb") as f:
         pickle.dump(obj, f)
@@ -100,16 +105,20 @@ if length(ARGS) == 1
 else
     n_phaes = 3
 end
+
+
+
 println("n_phase : ", n_phase)
-filename = joinpath(expanduser("~"), ".kyozi/summary_chunk.pickle")
+filename = joinpath(expanduser("~"), "tmp/summary_chunk.pickle")
 seqs = get_sequences(filename);
 hs_list = train_arhmm(seqs, n_phase)
-phase_seq_list = extract_labels(hs_list, n_phase)
+#phase_seq_list = extract_labels(hs_list, n_phase)
+
+hs_pure_list = []
+for hs in hs_list
+    push!(hs_pure_list, hs.z_ests)
+end
 
 # dump result
-result_filename = joinpath(expanduser("~"), ".kyozi/arhmm_result.pickle")
-result_filename_debug_json = joinpath(expanduser("~"), ".kyozi/arhmm_result.json")
-dump_pickle(phase_seq_list, result_filename)
-open(result_filename_debug_json, "w") do f
-    write(f, JSON.json(phase_seq_list, 2))
-end
+result_filename = joinpath(expanduser("~"), "tmp/arhmm_result.pickle")
+dump_pickle(hs_pure_list, result_filename)
